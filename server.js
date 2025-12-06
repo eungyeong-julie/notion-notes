@@ -12,12 +12,19 @@ const DATABASE_ID = process.env.NOTION_DATABASE_ID;
 const NOTION_API_BASE = 'https://api.notion.com/v1';
 const NOTION_VERSION = '2022-06-28';
 
-// 오늘 날짜를 YYYY-MM-DD 형식으로 반환
+// 오늘 날짜를 YYYY-MM-DD 형식으로 (항상 한국 시간 기준으로) 반환
 function getToday() {
   const now = new Date();
-  const y = now.getFullYear();
-  const m = String(now.getMonth() + 1).padStart(2, '0');
-  const d = String(now.getDate()).padStart(2, '0');
+
+  // 서버가 어디 있든, 한국 시간(Asia/Seoul)으로 변환
+  const koreaNow = new Date(
+    now.toLocaleString('en-US', { timeZone: 'Asia/Seoul' })
+  );
+
+  const y = koreaNow.getFullYear();
+  const m = String(koreaNow.getMonth() + 1).padStart(2, '0');
+  const d = String(koreaNow.getDate()).padStart(2, '0');
+
   return `${y}-${m}-${d}`;
 }
 
@@ -160,7 +167,7 @@ app.get('/hello', (req, res) => {
   res.send('서버 살아있음!');
 });
 
-const PORT = process.env.PORT || 3000;
+const PORT = 3000;
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`Server running: http://localhost:${PORT}`);
 });
