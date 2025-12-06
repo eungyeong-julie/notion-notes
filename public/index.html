@@ -8,84 +8,79 @@
 </head>
 <body>
   <div class="container">
-    <h1>오늘 노션에 기록하기</h1>
+    <h1>📝</h1>
 
-    <form id="note-form">
-      <textarea id="text" placeholder="오늘의 기록을 남겨보세요" rows="4"></textarea>
-      <button type="submit">전송</button>
-    </form>
+    <!-- form 삭제 → div로 감싸기 -->
+    <div id="note-box">
+      <textarea
+        id="text"
+        placeholder="오늘의 기록을 남겨보세요"
+        rows="4"
+      ></textarea>
+      <button id="send-btn" type="button">전송</button>
+    </div>
 
     <p id="result"></p>
   </div>
 
-<script>
-  const form = document.getElementById('note-form');
-  const result = document.getElementById('result');
-  const button = form.querySelector('button');
-  const textArea = document.getElementById('text');
+  <script>
+    const result = document.getElementById('result');
+    const button = document.getElementById('send-btn');
+    const textArea = document.getElementById('text');
 
-  // 🔹 Shift + Enter: 줄바꿈 / Enter: 전송
-  textArea.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') {
-      if (e.shiftKey) {
-        // 줄바꿈 허용 (기본 동작 그대로)
-        return;
-      } else {
-        // 엔터만 눌렀으면 전송
-        e.preventDefault();
-        form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
-      }
-    }
-  });
+    async function sendText() {
+      const text = textArea.value.trim();
 
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const text = textArea.value.trim();
-
-    if (!text) {
-      result.style.color = '#d92b2b';
-      result.textContent = '✏️ 내용을 입력해 주세요.';
-      return;
-    }
-
-    // 전송 중 상태
-    button.disabled = true;
-    button.textContent = '전송 중... ⏳';
-    result.textContent = '';
-
-    try {
-      const res = await fetch('/add-text', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ text }),
-      });
-
-      let data = {};
-      try {
-        data = await res.json();
-      } catch (_) {}
-
-      if (res.ok && data.success) {
-        // ✅ 성공: 팝업 + 입력창 비우기
-        alert('🌱 기록이 추가되었습니다.');
-        textArea.value = '';
-        result.textContent = '';
-      } else {
+      if (!text) {
         result.style.color = '#d92b2b';
-        result.textContent = '⚠️ 기록 추가에 실패했습니다. 다시 시도해 주세요.';
-        console.error('서버 응답:', data);
+        result.textContent = '✏️ 내용을 입력해 주세요.';
+        return;
       }
-    } catch (error) {
-      console.error(error);
-      result.style.color = '#d92b2b';
-      result.textContent = '🚫 오류가 발생했습니다.';
-    } finally {
-      button.disabled = false;
-      button.textContent = '전송';
+
+      // 전송 중 상태
+      button.disabled = true;
+      button.textContent = '전송 중... ⏳';
+      result.textContent = '';
+
+      try {
+        const res = await fetch('/add-text', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ text }),
+        });
+
+        let data = {};
+        try {
+          data = await res.json();
+        } catch (_) {}
+
+        if (res.ok && data.success) {
+          // ✅ 성공: 팝업 + 입력창 비우기
+          alert('🌱 기록이 추가되었습니다.');
+          textArea.value = '';
+          result.textContent = '';
+        } else {
+          result.style.color = '#d92b2b';
+          result.textContent = '⚠️ 기록 추가에 실패했습니다. 다시 시도해 주세요.';
+          console.error('서버 응답:', data);
+        }
+      } catch (error) {
+        console.error(error);
+        result.style.color = '#d92b2b';
+        result.textContent = '🚫 오류가 발생했습니다.';
+      } finally {
+        button.disabled = false;
+        button.textContent = '전송';
+      }
     }
-  });
-</script>
+
+    // 버튼 클릭으로만 전송
+    button.addEventListener('click', sendText);
+
+    // (선택) textarea에서 Enter는 그냥 줄바꿈만 되도록 - 아무 것도 안 함
+    // 굳이 막지 않아도 기본 동작이 줄바꿈이라 그대로 두면 됨 🙂
+  </script>
 </body>
 </html>
