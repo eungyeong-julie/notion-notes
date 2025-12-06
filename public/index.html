@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>오늘 기록하기</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <h1>오늘 노션에 기록하기</h1>
+
+    <form id="note-form">
+      <textarea id="text" placeholder="오늘의 기록을 남겨보세요" rows="4"></textarea>
+      <button type="submit">전송</button>
+    </form>
+
+    <p id="result"></p>
+  </div>
+
+<script>
+  const form = document.getElementById('note-form');
+  const result = document.getElementById('result');
+  const button = form.querySelector('button');
+  const textArea = document.getElementById('text');
+
+  // 🔹 Shift + Enter: 줄바꿈 / Enter: 전송
+  textArea.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      if (e.shiftKey) {
+        // 줄바꿈 허용 (기본 동작 그대로)
+        return;
+      } else {
+        // 엔터만 눌렀으면 전송
+        e.preventDefault();
+        form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+      }
+    }
+  });
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const text = textArea.value.trim();
+
+    if (!text) {
+      result.style.color = '#d92b2b';
+      result.textContent = '✏️ 내용을 입력해 주세요.';
+      return;
+    }
+
+    // 전송 중 상태
+    button.disabled = true;
+    button.textContent = '전송 중... ⏳';
+    result.textContent = '';
+
+    try {
+      const res = await fetch('/add-text', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ text }),
+      });
+
+      let data = {};
+      try {
+        data = await res.json();
+      } catch (_) {}
+
+      if (res.ok && data.success) {
+        // ✅ 성공: 팝업 + 입력창 비우기
+        alert('🌱 기록이 추가되었습니다.');
+        textArea.value = '';
+        result.textContent = '';
+      } else {
+        result.style.color = '#d92b2b';
+        result.textContent = '⚠️ 기록 추가에 실패했습니다. 다시 시도해 주세요.';
+        console.error('서버 응답:', data);
+      }
+    } catch (error) {
+      console.error(error);
+      result.style.color = '#d92b2b';
+      result.textContent = '🚫 오류가 발생했습니다.';
+    } finally {
+      button.disabled = false;
+      button.textContent = '전송';
+    }
+  });
+</script>
+</body>
+</html>
