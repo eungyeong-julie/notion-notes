@@ -110,6 +110,51 @@ async function getOrCreateTodayPage() {
 
 // 특정 페이지에 텍스트 블록 추가
 async function appendTextToPage(pageId, text) {
+  // 줄별로 분리
+  const lines = text.split('\n').filter(line => line.trim() !== '');
+
+  const children = [];
+
+  // 0) 구분선 추가
+  children.push({
+    object: 'block',
+    type: 'divider',
+    divider: {}
+  });
+
+  // 1) 첫 줄: Bold 처리한 paragraph 블록
+  if (lines.length > 0) {
+    children.push({
+      object: 'block',
+      type: 'paragraph',
+      paragraph: {
+        rich_text: [
+          {
+            type: 'text',
+            text: { content: lines[0] },
+            annotations: { bold: true }  // 볼드 처리
+          },
+        ],
+      },
+    });
+  }
+
+  // 2) 두 번째 줄부터: 일반 paragraph 블록
+  for (let i = 1; i < lines.length; i++) {
+    children.push({
+      object: 'block',
+      type: 'paragraph',
+      paragraph: {
+        rich_text: [
+          {
+            type: 'text',
+            text: { content: lines[i] }
+          }
+        ]
+      }
+    });
+  }
+
   const res = await fetch(`${NOTION_API_BASE}/blocks/${pageId}/children`, {
     method: 'PATCH',
     headers: {
@@ -117,24 +162,7 @@ async function appendTextToPage(pageId, text) {
       'Notion-Version': NOTION_VERSION,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({
-      children: [
-        {
-          object: 'block',
-          type: 'paragraph',
-          paragraph: {
-            rich_text: [
-              {
-                type: 'text',
-                text: {
-                  content: text,
-                },
-              },
-            ],
-          },
-        },
-      ],
-    }),
+    body: JSON.stringify({ children }),
   });
 
   if (!res.ok) {
