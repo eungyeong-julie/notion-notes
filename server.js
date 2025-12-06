@@ -115,13 +115,6 @@ async function appendTextToPage(pageId, text) {
 
   const children = [];
 
-  // 0) 구분선 추가
-  children.push({
-    object: 'block',
-    type: 'divider',
-    divider: {}
-  });
-
   // 1) 첫 줄: Bold 처리한 paragraph 블록
   if (lines.length > 0) {
     children.push({
@@ -154,6 +147,14 @@ async function appendTextToPage(pageId, text) {
       }
     });
   }
+
+  // 3) 구분선 추가
+  children.push({
+    object: 'block',
+    type: 'divider',
+    divider: {}
+  });
+
 
   const res = await fetch(`${NOTION_API_BASE}/blocks/${pageId}/children`, {
     method: 'PATCH',
