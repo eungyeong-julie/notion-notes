@@ -28,6 +28,19 @@ function getToday() {
   return `${y}-${m}-${d}`;
 }
 
+// 현재 시간을 HH:MM (항상 한국 시간 기준)으로 반환
+function getCurrentTime() {
+  const now = new Date();
+  const koreaNow = new Date(
+    now.toLocaleString('en-US', { timeZone: 'Asia/Seoul' })
+  );
+
+  const hh = String(koreaNow.getHours()).padStart(2, '0');
+  const mm = String(koreaNow.getMinutes()).padStart(2, '0');
+
+  return `${hh}:${mm}`;
+}
+
 // 오늘(Date)이 오늘인 페이지를 찾고, 없으면 새로 생성
 async function getOrCreateTodayPage() {
   const today = getToday();
@@ -109,14 +122,59 @@ async function getOrCreateTodayPage() {
 }
 
 // 특정 페이지에 텍스트 블록 추가
+// - 1줄만 있는 경우: 첫 줄(Bold) + 줄바꿈해서 hh:mm (일반 텍스트)
+// - 2줄 이상인 경우: 첫 줄(Bold), 중간 줄들(일반), 마지막 줄 끝에 " hh:mm" 추가
+//   + 마지막에 divider(--- 느낌) 추가
 async function appendTextToPage(pageId, text) {
-  // 줄별로 분리
-  const lines = text.split('\n').filter(line => line.trim() !== '');
+  // 줄별로 분리 (빈 줄 제거)
+  const lines = text
+    .split('\n')
+    .map(line => line.trim())
+    .filter(line => line !== '');
 
+  if (lines.length === 0) {
+    // 아무 내용도 없으면 추가 안 함
+    return;
+  }
+
+  const time = getCurrentTime(); // HH:MM
   const children = [];
 
-  // 1) 첫 줄: Bold 처리한 paragraph 블록
-  if (lines.length > 0) {
+  if (lines.length === 1) {
+    // ✅ 1줄만 있는 경우
+    const title = lines[0];
+
+    // 1) 첫 줄: Bold 처리한 제목
+    children.push({
+      object: 'block',
+      type: 'paragraph',
+      paragraph: {
+        rich_text: [
+          {
+            type: 'text',
+            text: { content: title },
+            annotations: { bold: true },
+          },
+        ],
+      },
+    });
+
+    // 2) 줄바꿈 후 시간 (일반 텍스트)
+    children.push({
+      object: 'block',
+      type: 'paragraph',
+      paragraph: {
+        rich_text: [
+          {
+            type: 'text',
+            text: { content: time },
+          },
+        ],
+      },
+    });
+  } else {
+    // ✅ 2줄 이상인 경우
+    // 1) 첫 줄: Bold
     children.push({
       object: 'block',
       type: 'paragraph',
@@ -125,15 +183,30 @@ async function appendTextToPage(pageId, text) {
           {
             type: 'text',
             text: { content: lines[0] },
-            annotations: { bold: true }  // 볼드 처리
+            annotations: { bold: true },
           },
         ],
       },
     });
-  }
 
-  // 2) 두 번째 줄부터: 일반 paragraph 블록
-  for (let i = 1; i < lines.length; i++) {
+    // 2) 중간 줄들: 일반 paragraph
+    for (let i = 1; i < lines.length - 1; i++) {
+      children.push({
+        object: 'block',
+        type: 'paragraph',
+        paragraph: {
+          rich_text: [
+            {
+              type: 'text',
+              text: { content: lines[i] },
+            },
+          ],
+        },
+      });
+    }
+
+    // 3) 마지막 줄 끝에 시간 붙이기 (줄바꿈 없이)
+    const lastLineWithTime = `${lines[lines.length - 1]} ${time}`;
     children.push({
       object: 'block',
       type: 'paragraph',
@@ -141,20 +214,19 @@ async function appendTextToPage(pageId, text) {
         rich_text: [
           {
             type: 'text',
-            text: { content: lines[i] }
-          }
-        ]
-      }
+            text: { content: lastLineWithTime },
+          },
+        ],
+      },
     });
   }
 
-  // 3) 구분선 추가
+  // 4) 마지막에 구분선 divider 추가
   children.push({
     object: 'block',
     type: 'divider',
-    divider: {}
+    divider: {},
   });
-
 
   const res = await fetch(`${NOTION_API_BASE}/blocks/${pageId}/children`, {
     method: 'PATCH',
